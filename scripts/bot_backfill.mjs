@@ -16,7 +16,16 @@ import {
 const TARGETS = [
   { collection: 'mix_media_files', query: 'mkv' },
   { collection: 'mix_media_files', query: 'mp4' },
+  { collection: 'mix_media_files', query: 'avi' },
+  { collection: 'mix_media_files', query: 'webm' },
+  { collection: 'mix_media_files', query: 'rar' },
+  { collection: 'mix_media_files', query: 'zip' },
   { collection: 'files', query: 'mkv' },
+  { collection: 'files', query: 'mp4' },
+  { collection: 'files', query: 'avi' },
+  { collection: 'files', query: 'webm' },
+  { collection: 'files', query: 'rar' },
+  { collection: 'files', query: 'zip' },
 ];
 
 const PAGES_PER_RUN = parseInt(process.env.BACKFILL_PAGES_PER_RUN || '25', 10);
@@ -104,3 +113,4 @@ run().catch((err) => {
   console.error('❌ [Backfill Bot Error]:', err.message);
   process.exit(1);
 });
+
