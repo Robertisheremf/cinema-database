@@ -12,6 +12,10 @@ const ANIME_KEYWORDS_RE =
 
 const JUNK_EXT_RE = /\.(txt|nfo|jpg|jpeg|png|webp|gif|url|lnk|exe|bat|cmd|apk|msi|srt|ass|vtt|sub|idx)$/i;
 const VALID_MEDIA_RE = /\.(mkv|mp4|avi|webm|mov|m4v|ts|zip|rar|7z|\d{3})$/i;
+const ADULT_NSFW_RE =
+  /\b(xxx|porn|brazzers|bangbros|naughtyamerica|realitykings|blacked|tushy|vixen|deeper|slayed|mypervyfamily|freeusefantasy|auntjudys|auntjudysxxx|desperateamateurs|facefucktour|glowingdesire|onlyfans|xvideos|pornhub|xnxx|creampie|gangbang)\b/i;
+const CAMERA_CLIP_RE = /^(?:VID|IMG|PXL|MOV|DSC|WA|Screen_?Recording|Screenshot)[_-]?\d{4,}/i;
+const COURSE_JUNK_RE = /\b(module[\s._-]*\d+|lesson[\s._-]*\d+|lecture[\s._-]*\d+|udemy|coursera|faqs[\s._-]*module|hands-on[\s._-]*exercise)\b/i;
 
 export function getEnvConfig() {
   const tgToken = process.env.TG_ARCHIVE_TOKEN;
@@ -159,6 +163,15 @@ export function classifyAndOptimize(raw) {
   if (/\bsample\b/i.test(lower) && fileSize < 120 * 1024 * 1024) {
     return { isJunk: true, id, fileName, fileSize, reason: 'sample_clip' };
   }
+  if (ADULT_NSFW_RE.test(lower)) {
+    return { isJunk: true, id, fileName, fileSize, reason: 'adult_nsfw' };
+  }
+  if (CAMERA_CLIP_RE.test(fileName)) {
+    return { isJunk: true, id, fileName, fileSize, reason: 'personal_camera_clip' };
+  }
+  if (COURSE_JUNK_RE.test(lower)) {
+    return { isJunk: true, id, fileName, fileSize, reason: 'course_tutorial' };
+  }
 
   // Quality
   let quality = 'HD';
@@ -289,13 +302,15 @@ export async function ingestOptimizedFiles(rawFiles) {
         now,
       ],
     });
-    // Sync external-content FTS5 index for newly inserted row
+    // Sync external-content FTS5 index for newly inserted row using O(1) rowid lookup
     stmts.push({
       sql: `INSERT INTO media_fts (rowid, canonical_title, file_name)
             SELECT rowid, canonical_title, file_name
             FROM structured_media_catalog
             WHERE id = ?
-              AND rowid NOT IN (SELECT rowid FROM media_fts)`,
+              AND NOT EXISTS (
+                SELECT 1 FROM media_fts f WHERE f.rowid = structured_media_catalog.rowid
+              )`,
       params: [item.id],
     });
   }
