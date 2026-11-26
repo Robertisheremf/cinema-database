@@ -20,12 +20,18 @@ const TARGETS = [
   { collection: 'mix_media_files', query: 'webm' },
   { collection: 'mix_media_files', query: 'rar' },
   { collection: 'mix_media_files', query: 'zip' },
+  { collection: 'mix_media_files', query: '7z' },
+  { collection: 'mix_media_files', query: 'ts' },
+  { collection: 'mix_media_files', query: 'm4v' },
   { collection: 'files', query: 'mkv' },
   { collection: 'files', query: 'mp4' },
   { collection: 'files', query: 'avi' },
   { collection: 'files', query: 'webm' },
   { collection: 'files', query: 'rar' },
   { collection: 'files', query: 'zip' },
+  { collection: 'files', query: '7z' },
+  { collection: 'files', query: 'ts' },
+  { collection: 'files', query: 'm4v' },
 ];
 
 const PAGES_PER_RUN = parseInt(process.env.BACKFILL_PAGES_PER_RUN || '25', 10);
