@@ -173,59 +173,65 @@ export function classifyAndOptimize(raw) {
     return { isJunk: true, id, fileName, fileSize, reason: 'course_tutorial' };
   }
 
+  // Normalize underscores and dots to spaces FIRST so \b word boundaries work on underscored filenames
+  const normalized = fileName
+    .replace(/\.(mkv|mp4|avi|webm|mov|m4v|ts|zip|rar|7z)(\.\d{3})?$/i, '')
+    .replace(/[._]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const normLower = normalized.toLowerCase();
+
   // Quality
   let quality = 'HD';
-  if (/\b(2160p|4k|uhd)\b/i.test(fileName)) quality = '4K';
-  else if (/\b(1080p|fhd)\b/i.test(fileName)) quality = '1080p';
-  else if (/\b(720p|hd)\b/i.test(fileName)) quality = '720p';
-  else if (/\b(480p|sd)\b/i.test(fileName)) quality = '480p';
+  if (/\b(2160p|4k|uhd)\b/i.test(normalized)) quality = '4K';
+  else if (/\b(1080p|fhd)\b/i.test(normalized)) quality = '1080p';
+  else if (/\b(720p|hd)\b/i.test(normalized)) quality = '720p';
+  else if (/\b(480p|sd)\b/i.test(normalized)) quality = '480p';
 
   // Audio
   const audios = [];
-  if (/\b(hindi|hin)\b/i.test(lower)) audios.push('Hindi');
-  if (/\b(english|eng)\b/i.test(lower)) audios.push('English');
-  if (/\b(tamil|tam)\b/i.test(lower)) audios.push('Tamil');
-  if (/\b(telugu|tel)\b/i.test(lower)) audios.push('Telugu');
-  if (/\b(dual[\s._-]*audio)\b/i.test(lower) && audios.length === 0) audios.push('Dual Audio');
+  if (/\b(hindi|hin)\b/i.test(normLower)) audios.push('Hindi');
+  if (/\b(english|eng)\b/i.test(normLower)) audios.push('English');
+  if (/\b(tamil|tam)\b/i.test(normLower)) audios.push('Tamil');
+  if (/\b(telugu|tel)\b/i.test(normLower)) audios.push('Telugu');
+  if (/\b(dual\s*audio)\b/i.test(normLower) && audios.length === 0) audios.push('Dual Audio');
   const audio = audios.join(', ') || 'Original';
 
-  // Season / Episode / Batch
-  const seMatch = fileName.match(/\bS(\d{1,2})[\s._-]*E(\d{1,3})\b/i);
-  const sOnlyMatch = fileName.match(/\b(?:S|Season)[\s._-]*(\d{1,2})\b/i);
+  // Season / Episode / Batch (supports S01E01, S01 E01, and 1x02)
+  const seMatch = normalized.match(/\bS(\d{1,2})\s*E(\d{1,3})\b/i) || normalized.match(/\b(\d{1,2})x(\d{2,3})\b/i);
+  const sOnlyMatch = normalized.match(/\b(?:S|Season)\s*(\d{1,2})\b/i);
   const isBatch =
-    /\b(complete|pack|batch|season[\s._-]*\d+[\s._-]*(?:complete|zip))\b/i.test(lower) ||
+    /\b(complete|pack|batch|season\s*\d+\s*(?:complete|zip))\b/i.test(normLower) ||
     /\.zip$/i.test(lower)
       ? 1
       : 0;
   const season = seMatch ? parseInt(seMatch[1], 10) : sOnlyMatch ? parseInt(sOnlyMatch[1], 10) : null;
   const episode = seMatch ? parseInt(seMatch[2], 10) : null;
 
-  const isAnime = ANIME_KEYWORDS_RE.test(fileName) ? 1 : 0;
+  const isAnime = ANIME_KEYWORDS_RE.test(normalized) ? 1 : 0;
   const mediaType = isAnime ? 'anime' : season !== null || episode !== null || isBatch ? 'tv' : 'movie';
 
   // Year (exclude 2160p)
   let year = null;
-  for (const m of fileName.matchAll(/\b(19\d{2}|20\d{2})\b/g)) {
+  for (const m of normalized.matchAll(/\b(19\d{2}|20\d{2})\b/g)) {
     const idx = m.index ?? -1;
-    if (idx !== -1 && fileName[idx + 4]?.toLowerCase() === 'p') continue;
+    if (idx !== -1 && normalized[idx + 4]?.toLowerCase() === 'p') continue;
     year = parseInt(m[1], 10);
     break;
   }
 
-  // Canonical Title extraction
-  let titlePart = fileName.replace(/\.(mkv|mp4|avi|webm|mov|m4v|ts|zip|rar|7z)(\.\d{3})?$/i, '');
-  // Cut at year, season/episode tag, or quality tag whichever comes first
+  // Canonical Title extraction (cut at year, season/episode, 1x02, or quality tag)
+  let titlePart = normalized;
   const cutMatch = titlePart.match(
-    /\b((?:19|20)\d{2}|S\d{1,2}\s*E?\d{0,3}|Season\s*\d{1,2}|2160p|1080p|720p|480p|4K|UHD|WEB-?DL|WEBRip|BluRay|BRRip|HDRip|HDTC|HDTS)\b/i
+    /\b((?:19|20)\d{2}|S\d{1,2}\s*E?\d{0,3}|\d{1,2}x\d{2,3}|Season\s*\d{1,2}|2160p|1080p|720p|480p|4K|UHD|WEB-?DL|WEBRip|BluRay|BRRip|HDRip|HDTC|HDTS)\b/i
   );
   if (cutMatch && cutMatch.index > 1) {
     titlePart = titlePart.slice(0, cutMatch.index);
   }
   const canonicalTitle =
     titlePart
-      .replace(/[._]+/g, ' ')
       .replace(/[\[\]()]+/g, ' ')
-      .replace(/[-–—]+$/g, '')
+      .replace(/[\s\-–—:]+$/g, '')
       .replace(/\s+/g, ' ')
       .trim() || fileName.slice(0, 60);
 
