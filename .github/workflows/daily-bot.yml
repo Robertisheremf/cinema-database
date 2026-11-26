@@ -1,0 +1,31 @@
+name: Bot 1 - 24/7 Daily Archive Watcher
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: daily-archive-watcher
+  cancel-in-progress: false
+
+jobs:
+  daily-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run Bot 1 (Daily Watcher -> Optimizer -> Turso)
+        env:
+          TG_ARCHIVE_TOKEN: ${{ secrets.TG_ARCHIVE_TOKEN }}
+          TURSO_CATALOG_URL: ${{ secrets.TURSO_CATALOG_URL }}
+          TURSO_TOKEN: ${{ secrets.TURSO_TOKEN }}
+          DAILY_MAX_PAGES: '5'
+        run: node scripts/bot_daily.mjs
