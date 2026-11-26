@@ -84,6 +84,16 @@ export async function ensureSyncStateTable() {
         updated_at TEXT
       )`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS junk_quarantine (
+        id TEXT PRIMARY KEY,
+        file_name TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        junk_reason TEXT NOT NULL,
+        original_clean_title TEXT,
+        created_at TEXT
+      )`,
+    },
   ]);
 }
 
@@ -310,3 +320,4 @@ export async function ingestOptimizedFiles(rawFiles) {
     quarantined: junkItems.length,
   };
 }
+
