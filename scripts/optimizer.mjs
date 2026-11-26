@@ -209,7 +209,8 @@ export function classifyAndOptimize(raw) {
   const episode = seMatch ? parseInt(seMatch[2], 10) : null;
 
   const isAnime = ANIME_KEYWORDS_RE.test(normalized) ? 1 : 0;
-  const mediaType = isAnime ? 'anime' : season !== null || episode !== null || isBatch ? 'tv' : 'movie';
+  const isTvByName = season !== null || episode !== null || /\b(season\s*\d|series|complete\s*pack|s\d{1,2})\b/i.test(normLower);
+  const mediaType = isAnime ? 'anime' : isTvByName ? 'tv' : 'movie';
 
   // Year (exclude 2160p)
   let year = null;
